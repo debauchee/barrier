@@ -9,6 +9,20 @@ Packager: Debauchee <todo@mail.com>
 License: GPLv2
 Release: @BARRIER_BUILD_NUMBER@@BARRIER_SNAPSHOT_INFO@%{?dist}
 
+# bonjour headers: dns_sd.h at least for CentOS-7 and CentOS-6
+BuildRequires: avahi-compat-libdns_sd-devel
+
+# possible issue here for cmake: on CentOS-7, cmake is cmake 2.x and barrier needs cmake 3.x
+# which is available from EPEL as cmake3, that might not be the case for other RPMS based distro
+%if 0%{?rhel} == 7
+BuildRequires: cmake3 
+%endif
+
+# EPEL also provide cmake3 for CentOS-6, but I have tried to build barrier on CentOS-6 yet
+%if 0%{?rhel} == 6
+BuildRequires: cmake3 
+%endif
+
 %description
 Barrier allows you to share one mouse and keyboard between multiple computers.
 Work seamlessly across Windows, macOS and Linux.
