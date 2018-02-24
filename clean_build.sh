@@ -5,7 +5,7 @@ mkdir build || exit 1
 cd build || exit 1
 # some environments have cmake v2 as 'cmake' and v3 as 'cmake3'
 # check for cmake3 first then fallback to just cmake
-B_CMAKE=`which cmake3 2>/dev/null`
+`type cmake3 >> /dev/null` && B_CMAKE=`type cmake3 | cut -d ' ' -f 3`
 [ $? -ne 0 -o "x$B_CMAKE" = "x" ] && B_CMAKE=cmake
 # default build configuration
 B_BUILD_TYPE=${B_BUILD_TYPE:-Debug}
