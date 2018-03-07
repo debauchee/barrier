@@ -41,7 +41,7 @@ if (NOT DEFINED BARRIER_REVISION)
         string (SUBSTRING $ENV{GIT_COMMIT} 0 8 BARRIER_REVISION)
     else()
         execute_process (
-            COMMAND git rev-parse --short=8 HEAD
+            COMMAND git rev-parse --short HEAD
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
             OUTPUT_VARIABLE BARRIER_REVISION
             OUTPUT_STRIP_TRAILING_WHITESPACE
