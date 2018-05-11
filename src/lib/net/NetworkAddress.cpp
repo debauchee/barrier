@@ -45,7 +45,7 @@ NetworkAddress::NetworkAddress(int port) :
     m_port(port)
 {
     checkPort();
-    m_address = ARCH->newAnyAddr(IArchNetwork::kINET);
+    m_address = ARCH->newAnyAddr(IArchNetwork::kBLUETOOTH);
     ARCH->setAddrPort(m_address, m_port);
 }
 
@@ -145,7 +145,7 @@ NetworkAddress::resolve()
         // if hostname is empty then use wildcard address otherwise look
         // up the name.
         if (m_hostname.empty()) {
-            m_address = ARCH->newAnyAddr(IArchNetwork::kINET);
+            m_address = ARCH->newAnyAddr(IArchNetwork::kBLUETOOTH);
         }
         else {
             m_address = ARCH->nameToAddr(m_hostname);

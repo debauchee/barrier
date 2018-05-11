@@ -21,6 +21,7 @@
 #include "arch/unix/ArchMultithreadPosix.h"
 #include "arch/unix/XArchUnix.h"
 #include "arch/Arch.h"
+#include "base/Log.h"
 
 #if HAVE_UNISTD_H
 #    include <unistd.h>
@@ -54,6 +55,7 @@ static const int s_family[] = {
     PF_UNSPEC,
     PF_INET,
     PF_INET6,
+    PF_BLUETOOTH
 };
 static const int s_type[] = {
     SOCK_DGRAM,
@@ -83,6 +85,220 @@ inet_aton(const char* cp, struct in_addr* inp)
 }
 #endif
 
+#if HAVE_BLUETOOTH
+#    include <bluetooth/bluetooth.h>
+#    include <bluetooth/rfcomm.h>
+#    include <bluetooth/hci.h>
+#    include <bluetooth/hci_lib.h>
+
+static const bdaddr_t bdaddr_any = {0, 0, 0, 0, 0, 0};
+static const bdaddr_t bdaddr_local = {0, 0, 0, 0xff, 0xff, 0xff};
+uint32_t service_uuid_int[] = { 0x0e92afb7, 0xaeca4c00, 0x950d6f96, 0xc3cd5b16 };
+
+sdp_session_t *ArchNetworkBSD::register_service(uint8_t rfcomm_channel)
+{
+    const char *service_name = "Barrier";
+    const char *service_dsc = "Mouse and keyboard sharing";
+    const char *service_prov = "Barrier";
+
+    uuid_t root_uuid, l2cap_uuid, rfcomm_uuid, svc_uuid;
+    sdp_list_t *l2cap_list = 0,
+               *rfcomm_list = 0,
+               *root_list = 0,
+               *proto_list = 0,
+               *access_proto_list = 0;
+    sdp_data_t *channel = 0, *psm = 0;
+
+    sdp_record_t *record = sdp_record_alloc();
+
+    // set the general service ID
+    sdp_uuid128_create( &svc_uuid, &service_uuid_int );
+    sdp_set_service_id( record, svc_uuid );
+
+    // make the service record publicly browsable
+    sdp_uuid16_create(&root_uuid, PUBLIC_BROWSE_GROUP);
+    root_list = sdp_list_append(0, &root_uuid);
+    sdp_set_browse_groups( record, root_list );
+
+    // set l2cap information
+    sdp_uuid16_create(&l2cap_uuid, L2CAP_UUID);
+    l2cap_list = sdp_list_append( 0, &l2cap_uuid );
+    proto_list = sdp_list_append( 0, l2cap_list );
+
+    // set rfcomm information
+    sdp_uuid16_create(&rfcomm_uuid, RFCOMM_UUID);
+    channel = sdp_data_alloc(SDP_UINT8, &rfcomm_channel);
+    rfcomm_list = sdp_list_append( 0, &rfcomm_uuid );
+    sdp_list_append( rfcomm_list, channel );
+    sdp_list_append( proto_list, rfcomm_list );
+
+    // attach protocol information to service record
+    access_proto_list = sdp_list_append( 0, proto_list );
+    sdp_set_access_protos( record, access_proto_list );
+
+    // set the name, provider, and description
+    sdp_set_info_attr(record, service_name, service_prov, service_dsc);
+
+    int err = 0;
+    sdp_session_t *session = 0;
+
+    // connect to the local SDP server, register the service record, and
+    // disconnect
+    session = sdp_connect( &bdaddr_any, &bdaddr_local, SDP_RETRY_IF_BUSY );
+    err = sdp_record_register(session, record, 0);
+
+    // cleanup
+    sdp_data_free( channel );
+    sdp_list_free( l2cap_list, 0 );
+    sdp_list_free( rfcomm_list, 0 );
+    sdp_list_free( root_list, 0 );
+    sdp_list_free( access_proto_list, 0 );
+
+    return session;
+}
+
+ArchNetAddress ArchNetworkBSD::find_channel(ArchNetAddress addr) {
+       struct sockaddr_rc *Baddr = reinterpret_cast<struct sockaddr_rc*>(&addr->m_addr);
+
+       LOG((CLOG_INFO "checking services on %s", addrToString(addr).c_str()));
+
+       uuid_t svc_uuid;
+       int err;
+       sdp_list_t *response_list = NULL, *search_list, *attrid_list;
+       sdp_session_t *session = 0;
+
+       // connect to the SDP server running on the remote machine
+       session = sdp_connect( &bdaddr_any, &Baddr->rc_bdaddr, SDP_RETRY_IF_BUSY );
+       if(!session) {
+               throwError(errno);
+       }
+
+       // specify the UUID of the application we're searching for
+       sdp_uuid128_create( &svc_uuid, &service_uuid_int );
+       search_list = sdp_list_append( NULL, &svc_uuid );
+
+       // specify that we want a list of all the matching applications' attributes
+       uint32_t range = 0x0000ffff;
+       attrid_list = sdp_list_append( NULL, &range );
+
+       // get a list of service records that have UUID 0xabcd
+       err = sdp_service_search_attr_req( session, search_list,
+               SDP_ATTR_REQ_RANGE, attrid_list, &response_list);
+
+       sdp_list_t *r = response_list;
+
+       // go through each of the service records
+       for (; r; r = r->next ) {
+         sdp_record_t *rec = (sdp_record_t*) r->data;
+         sdp_list_t *proto_list;
+
+         // get a list of the protocol sequences
+         if( sdp_get_access_protos( rec, &proto_list ) == 0 ) {
+         sdp_list_t *p = proto_list;
+
+         // go through each protocol sequence
+         for( ; p ; p = p->next ) {
+               sdp_list_t *pds = (sdp_list_t*)p->data;
+
+               // go through each protocol list of the protocol sequence
+               for( ; pds ; pds = pds->next ) {
+
+                   // check the protocol attributes
+                   sdp_data_t *d = (sdp_data_t*)pds->data;
+                   int proto = 0;
+                   for( ; d; d = d->next ) {
+                       switch( d->dtd ) {
+                           case SDP_UUID16:
+                           case SDP_UUID32:
+                           case SDP_UUID128:
+                               proto = sdp_uuid_to_proto( &d->val.uuid );
+                               break;
+                           case SDP_UINT8:
+                               if( proto == RFCOMM_UUID ) {
+                                       LOG((CLOG_INFO "Found synergy service on channel %d", d->val.int8));
+                                       Baddr->rc_channel = d->val.int8;
+                               }
+                               break;
+                       }
+                   }
+               }
+               sdp_list_free( (sdp_list_t*)p->data, 0 );
+         }
+         sdp_list_free( proto_list, 0 );
+         }
+         sdp_record_free( rec );
+       }
+
+       sdp_close(session);
+       if(Baddr->rc_channel == 0)
+               throw XArchNetwork("Synergy service not available on remote device");
+
+       return addr;
+}
+
+ArchNetAddress ArchNetworkBSD::find_service(ArchNetAddress addr) {
+       if(isAnyAddr(addr)) {
+               LOG((CLOG_INFO "Scanning for bluetooth devices..."));
+               inquiry_info *ii = NULL;
+               int max_rsp, num_rsp;
+               int dev_id, sock, len, flags;
+               int i;
+               char _addr[19] = { 0 };
+               char name[248] = { 0 };
+
+               dev_id = hci_get_route(NULL);
+               sock = hci_open_dev( dev_id );
+               if (dev_id < 0 || sock < 0) {
+                       throwError(errno);
+               }
+
+               len  = 8;
+               max_rsp = 255;
+               flags = IREQ_CACHE_FLUSH;
+               ii = (inquiry_info*)malloc(max_rsp * sizeof(inquiry_info));
+
+               ArchNetAddress temp_addr = copyAddr(addr);
+               struct sockaddr_rc *temp_baddr = reinterpret_cast<struct sockaddr_rc*>(&temp_addr->m_addr);
+
+               num_rsp = hci_inquiry(dev_id, len, max_rsp, NULL, &ii, flags);
+               if( num_rsp < 0 ) perror("hci_inquiry");
+
+               for (i = 0; i < num_rsp; i++) {
+                       ba2str(&(ii+i)->bdaddr, _addr);
+                       memset(name, 0, sizeof(name));
+                       if (hci_read_remote_name(sock, &(ii+i)->bdaddr, sizeof(name),
+                       name, 0) < 0)
+                       strcpy(name, "[unknown]");
+                       LOG((CLOG_INFO "Found device: %s %s", _addr, name));
+
+                       try {
+                               temp_baddr->rc_bdaddr = (ii+i)->bdaddr;
+                               find_channel(temp_addr);
+                       }
+                       catch(...) {
+                               continue;
+                       }
+                       //found a device
+                       *addr = *temp_addr;
+                       break;
+               }
+
+               delete temp_addr;
+               free( ii );
+               hci_close_dev(sock);
+
+               if(isAnyAddr(addr)) {
+                       throw XArchNetwork("No devices with synergy service found");
+               }
+
+               return addr;
+
+       } else
+               return find_channel(addr);
+}
+
+#endif
+
 //
 // ArchNetworkBSD
 //
@@ -101,13 +317,20 @@ ArchNetworkBSD::init()
 {
     // create mutex to make some calls thread safe
     m_mutex = ARCH->newMutex();
+#if HAVE_BLUETOOTH
+    sdp_session = NULL;
+#endif
 }
 
 ArchSocket
 ArchNetworkBSD::newSocket(EAddressFamily family, ESocketType type)
 {
     // create socket
-    int fd = socket(s_family[family], s_type[type], 0);
+    int protocol = 0;
+#if HAVE_BLUETOOTH
+    if (family == kBLUETOOTH) protocol = BTPROTO_RFCOMM;
+#endif
+    int fd = socket(s_family[family], s_type[type], protocol);
     if (fd == -1) {
         throwError(errno);
     }
@@ -119,10 +342,21 @@ ArchNetworkBSD::newSocket(EAddressFamily family, ESocketType type)
         throw;
     }
 
+#if HAVE_BLUETOOTH
+    if(family == kBLUETOOTH) {
+        int opt = 0;
+        opt |= RFCOMM_LM_AUTH;
+        opt |= RFCOMM_LM_ENCRYPT;
+        opt |= RFCOMM_LM_SECURE;
+        setsockopt(fd, SOL_RFCOMM, RFCOMM_LM, &opt, sizeof(opt));
+    }
+#endif
+
     // allocate socket object
     ArchSocketImpl* newSocket = new ArchSocketImpl;
     newSocket->m_fd            = fd;
     newSocket->m_refCount      = 1;
+    newSocket->m_family        = family;
     return newSocket;
 }
 
@@ -142,6 +376,11 @@ void
 ArchNetworkBSD::closeSocket(ArchSocket s)
 {
     assert(s != NULL);
+
+#if HAVE_BLUETOOTH
+    if(s->m_family == kBLUETOOTH && sdp_session != NULL)
+        sdp_close(sdp_session);
+#endif
 
     // unref the socket and note if it should be released
     ARCH->lockMutex(m_mutex);
@@ -206,6 +445,18 @@ ArchNetworkBSD::listenOnSocket(ArchSocket s)
     if (listen(s->m_fd, 3) == -1) {
         throwError(errno);
     }
+
+#if HAVE_BLUETOOTH
+    if(s->m_family == kBLUETOOTH) {
+        struct sockaddr Addr;
+        memset(&Addr, 0, sizeof(Addr));
+        socklen_t size = sizeof(Addr);
+        getsockname(s->m_fd, &Addr, &size);
+        struct sockaddr_rc* BAddr =
+            reinterpret_cast<struct sockaddr_rc*>(&Addr);
+        register_service((uint8_t)BAddr->rc_channel);
+    }
+#endif
 }
 
 ArchSocket
@@ -266,6 +517,11 @@ ArchNetworkBSD::connectSocket(ArchSocket s, ArchNetAddress addr)
 {
     assert(s    != NULL);
     assert(addr != NULL);
+
+#if HAVE_BLUETOOTH
+    if (getAddrFamily(addr) == kBLUETOOTH)
+        addr = find_service(addr);
+#endif
 
     if (connect(s->m_fd, TYPED_ADDR(struct sockaddr, addr), addr->m_len) == -1) {
         if (errno == EISCONN) {
@@ -583,6 +839,9 @@ ArchNetworkBSD::setNoDelayOnSocket(ArchSocket s, bool noDelay)
 {
     assert(s != NULL);
 
+    if(s->m_family == kBLUETOOTH)
+        return true;
+
     // get old state
     int oflag;
     socklen_t size = (socklen_t)sizeof(oflag);
@@ -662,6 +921,19 @@ ArchNetworkBSD::newAnyAddr(EAddressFamily family)
         addr->m_len                = (socklen_t)sizeof(struct sockaddr_in6);
         break;
     }
+
+#if HAVE_BLUETOOTH
+    case kBLUETOOTH: {
+        struct sockaddr_rc* BAddr =
+            reinterpret_cast<struct sockaddr_rc*>(&addr->m_addr);
+        BAddr->rc_family         = AF_BLUETOOTH;
+        BAddr->rc_bdaddr            = ((bdaddr_t) {{0, 0, 0, 0, 0, 0}});
+        BAddr->rc_channel       = (uint8_t) 0;
+        addr->m_len                = sizeof(struct sockaddr_rc);
+        break;
+    }
+#endif
+
     default:
         delete addr;
         assert(0 && "invalid family");
@@ -689,6 +961,27 @@ ArchNetworkBSD::nameToAddr(const std::string& name)
     struct addrinfo hints;
     struct addrinfo *p;
     int ret;
+
+#if HAVE_BLUETOOTH
+    if (s->m_family == kBLUETOOTH) {
+        struct sockaddr_rc inaddr;
+        memset(&inaddr, 0, sizeof(inaddr));
+        if(str2ba(name.c_str(), &inaddr.rc_bdaddr) != 0) {
+            ARCH->unlockMutex(m_mutex);
+            delete addr;
+            throwNameError(ret);
+        }
+
+        addr->m_len = sizeof(struct sockaddr_rc);
+        inaddr.rc_family = AF_BLUETOOTH;
+        inaddr.rc_channel = (uint8_t) 0;
+        memcpy(&addr->m_addr, &inaddr, addr->m_len);
+
+        ARCH->unlockMutex(m_mutex);
+
+        return addr;
+    }
+#endif
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
@@ -726,24 +1019,48 @@ ArchNetworkBSD::addrToName(ArchNetAddress addr)
 {
     assert(addr != NULL);
 
-    // mutexed name lookup (ugh)
-    ARCH->lockMutex(m_mutex);
-    char host[1024];
-    char service[20];
-    int ret = getnameinfo(TYPED_ADDR(struct sockaddr, addr), addr->m_len, host,
-            sizeof(host), service, sizeof(service), 0);
-    if (ret != 0) {
+    switch(getAddrFamily(addr)) {
+    case kINET:
+    case kINET6: {
+        // mutexed name lookup (ugh)
+        ARCH->lockMutex(m_mutex);
+        char host[1024];
+        char service[20];
+        int ret = getnameinfo(TYPED_ADDR(struct sockaddr, addr), addr->m_len, host,
+                sizeof(host), service, sizeof(service), 0);
+        if (ret != 0) {
+            ARCH->unlockMutex(m_mutex);
+            throwNameError(ret);
+        }
+
+        // save (primary) name
+        std::string name = host;
+
+        // done with static buffer
         ARCH->unlockMutex(m_mutex);
-        throwNameError(ret);
+        return name;
     }
 
-    // save (primary) name
-    std::string name = host;
+#if HAVE_BLUETOOTH
+    case kBLUETOOTH: {
+        int sock = hci_open_dev( hci_get_route( NULL ) );
+        struct sockaddr_rc *baddr = reinterpret_cast<sockaddr_rc*>(&addr->m_addr);
 
-    // done with static buffer
-    ARCH->unlockMutex(m_mutex);
+        char cname[256] = "00:00:00:00:00:00";
+        if(hci_read_remote_name(sock, &baddr->rc_bdaddr, 255, cname, 3000))
+            return addrToString(addr);
 
-    return name;
+        close(sock);
+
+        std::string name = cname;
+        return name;
+    }
+#endif
+
+    default:
+        assert(0 && "unknown address family");
+        return "";
+    }
 }
 
 std::string
@@ -769,6 +1086,16 @@ ArchNetworkBSD::addrToString(ArchNetAddress addr)
         return strAddr;
     }
 
+#if HAVE_BLUETOOTH
+    case kBLUETOOTH: {
+        struct sockaddr_rc *baddr = reinterpret_cast<sockaddr_rc*>(&addr->m_addr);
+        char cstr[18] = "00:00:00:00:00:00";
+        ba2str(&baddr->rc_bdaddr, cstr);
+        std::string s = cstr;
+        return s;
+    }
+#endif
+
     default:
         assert(0 && "unknown address family");
         return "";
@@ -785,6 +1112,8 @@ ArchNetworkBSD::getAddrFamily(ArchNetAddress addr)
         return kINET;
     case AF_INET6:
         return kINET6;
+    case AF_BLUETOOTH:
+        return kBLUETOOTH;
 
     default:
         return kUNKNOWN;
@@ -809,6 +1138,15 @@ ArchNetworkBSD::setAddrPort(ArchNetAddress addr, int port)
         break;
     }
 
+#if HAVE_BLUETOOTH
+    case kBLUETOOTH: {
+        struct sockaddr_rc* ipAddr =
+                 reinterpret_cast<struct sockaddr_rc*>(&addr->m_addr);
+        ipAddr->rc_channel = (uint8_t) 0;
+        break;
+    }
+#endif
+
     default:
         assert(0 && "unknown address family");
         break;
@@ -830,6 +1168,14 @@ ArchNetworkBSD::getAddrPort(ArchNetAddress addr)
         auto* ipAddr = TYPED_ADDR(struct sockaddr_in6, addr);
         return ntohs(ipAddr->sin6_port);
     }
+
+#if HAVE_BLUETOOTH
+    case kBLUETOOTH: {
+        struct sockaddr_rc* ipAddr =
+                reinterpret_cast<struct sockaddr_rc*>(&addr->m_addr);
+        return ipAddr->rc_channel;
+    }
+#endif
 
     default:
         assert(0 && "unknown address family");
@@ -854,6 +1200,21 @@ ArchNetworkBSD::isAnyAddr(ArchNetAddress addr)
         return (memcmp(&ipAddr->sin6_addr, &in6addr_any, sizeof(in6addr_any)) == 0 &&
                 addr->m_len == (socklen_t)sizeof(struct sockaddr_in6));
     }
+
+#if HAVE_BLUETOOTH
+    case kBLUETOOTH: {
+        struct sockaddr_rc* BAddr =
+                reinterpret_cast<struct sockaddr_rc*>(&addr->m_addr);
+        char *a, *b;
+        int n;
+        a = (char*)&BAddr->rc_bdaddr;
+        b = (char*)(&bdaddr_any);
+        for(n=0;n<6;n++) {
+            if(a[n]!=b[n]) return false;
+        }
+        return (addr->m_len == sizeof(struct sockaddr_rc));
+    }
+#endif
 
     default:
         assert(0 && "unknown address family");

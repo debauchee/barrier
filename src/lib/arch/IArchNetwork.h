@@ -65,6 +65,7 @@ public:
         kUNKNOWN,
         kINET,
         kINET6,
+        kBLUETOOTH,
     };
 
     //! Supported socket types

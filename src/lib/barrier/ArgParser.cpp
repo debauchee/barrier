@@ -117,9 +117,12 @@ ArgParser::parseClientArgs(ClientArgs& args, int argc, const char* const* argv)
 
     // exactly one non-option argument (server-address)
     if (i == argc) {
-        LOG((CLOG_PRINT "%s: a server address or name is required" BYE,
-            args.m_pname, args.m_pname));
-        return false;
+        // breaking
+        args.m_barrierAddress = "00:00:00:00:00:00";
+
+        //LOG((CLOG_PRINT "%s: a server address or name is required" BYE,
+        //    args.m_pname, args.m_pname));
+        //return false;
     }
 
     if (checkUnexpectedArgs()) {

@@ -27,9 +27,12 @@
 #if HAVE_SYS_SOCKET_H
 #    include <sys/socket.h>
 #endif
-
 #if !HAVE_SOCKLEN_T
 typedef int socklen_t;
+#endif
+#if HAVE_BLUETOOTH
+#    include <bluetooth/sdp.h>
+#    include <bluetooth/sdp_lib.h>
 #endif
 
 // old systems may use char* for [gs]etsockopt()'s optval argument.
@@ -44,6 +47,7 @@ class ArchSocketImpl {
 public:
     int                    m_fd;
     int                    m_refCount;
+    IArchNetwork::EAddressFamily                 m_family;
 };
 
 class ArchNetAddressImpl {
@@ -100,6 +104,16 @@ private:
     void                throwError(int);
     void                throwNameError(int);
 
+#if HAVE_BLUETOOTH
+    sdp_session_t        *register_service(uint8_t rfcomm_channel);
+    ArchNetAddress      find_channel(ArchNetAddress addr);
+    ArchNetAddress      find_service(ArchNetAddress addr);
+#endif
+
 private:
     ArchMutex            m_mutex;
+
+#if HAVE_BLUETOOTH
+    sdp_session_t *      sdp_session;
+#endif
 };

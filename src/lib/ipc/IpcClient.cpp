@@ -28,7 +28,7 @@
 
 IpcClient::IpcClient(IEventQueue* events, SocketMultiplexer* socketMultiplexer) :
     m_serverAddress(NetworkAddress(IPC_HOST, IPC_PORT)),
-    m_socket(events, socketMultiplexer, IArchNetwork::kINET),
+    m_socket(events, socketMultiplexer, IArchNetwork::kBLUETOOTH),
     m_server(nullptr),
     m_events(events)
 {
@@ -37,7 +37,7 @@ IpcClient::IpcClient(IEventQueue* events, SocketMultiplexer* socketMultiplexer) 
 
 IpcClient::IpcClient(IEventQueue* events, SocketMultiplexer* socketMultiplexer, int port) :
     m_serverAddress(NetworkAddress(IPC_HOST, port)),
-    m_socket(events, socketMultiplexer, IArchNetwork::kINET),
+    m_socket(events, socketMultiplexer, IArchNetwork::kBLUETOOTH),
     m_server(nullptr),
     m_events(events)
 {

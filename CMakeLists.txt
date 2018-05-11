@@ -197,6 +197,7 @@ if (UNIX)
         check_library_exists ("Xinerama" XineramaQueryExtension "" HAVE_Xinerama)
         check_library_exists ("Xi" XISelectEvents "" HAVE_Xi)
         check_library_exists ("Xrandr" XRRQueryExtension "" HAVE_Xrandr)
+        check_library_exists ("bluetooth" hci_open_dev "" HAVE_BLUETOOTH)
 
         if (HAVE_ICE)
 
@@ -239,6 +240,13 @@ if (UNIX)
         # not sure why, moving it back inside.
         if (HAVE_Xi)
             list (APPEND libs Xi)
+        endif()
+
+        if (HAVE_BLUETOOTH)
+            list (APPEND libs bluetooth)
+            add_definitions( -DHAVE_BLUETOOTH )
+        else()
+            message (Warning "Missing library: bluetooth, disabled")
         endif()
 
     endif()
