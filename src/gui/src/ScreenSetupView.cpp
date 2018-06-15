@@ -22,6 +22,7 @@
 
 #include <QtCore>
 #include <QtGui>
+#include <QHeaderView>
 
 ScreenSetupView::ScreenSetupView(QWidget* parent) :
     QTableView(parent)
