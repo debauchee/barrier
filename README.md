@@ -8,6 +8,8 @@ Master branch build status: &nbsp; [![Build Status](https://travis-ci.org/debauc
 
 Barrier is KVM software forked from Symless's synergy 1.9 codebase. Synergy was a commercialized reimplementation of the original CosmoSynergy written by Chris Schoeneman.
 
+At the moment, barrier is not compatible with synergy. Barrier needs to be installed on all machines that will share keyboard and mouse.
+
 ### What's different?
 
 Whereas synergy has moved beyond its goals from the 1.x era, barrier aims to maintain that simplicity. Barrier will let you use your keyboard and mouse from machine A to control machine B (or more). That's it.
