@@ -302,13 +302,28 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
         ${OPENSSL_ROOT}/lib/ssleay32.lib
     )
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set (OPENSSL_ROOT /usr/local/opt/openssl)
 
-    include_directories (BEFORE SYSTEM ${OPENSSL_ROOT}/include)
-    set (OPENSSL_LIBS
-        ${OPENSSL_ROOT}/lib/libssl.a
-        ${OPENSSL_ROOT}/lib/libcrypto.a
-    )
+    if (IS_DIRECTORY /usr/local/opt/openssl)
+        # brew
+        set (OPENSSL_ROOT /usr/local/opt/openssl)
+
+        include_directories (BEFORE SYSTEM ${OPENSSL_ROOT}/include)
+
+        set (OPENSSL_LIBS
+            ${OPENSSL_ROOT}/lib/libssl.a
+            ${OPENSSL_ROOT}/lib/libcrypto.a
+        )
+    else(IS_DIRECTORY /opt/local)
+        # macports
+        set (OPENSSL_ROOT /opt/local)
+
+        set (OPENSSL_LIBS
+            ${OPENSSL_ROOT}/lib/libssl.a
+            ${OPENSSL_ROOT}/lib/libcrypto.a
+            z
+        )
+    endif()
+
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     set (OPENSSL_LIBS ssl crypto)
 else()
