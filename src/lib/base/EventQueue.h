@@ -26,7 +26,6 @@
 #include "base/Stopwatch.h"
 #include "common/stdmap.h"
 #include "common/stdset.h"
-#include "base/NonBlockingStream.h"
 
 #include <queue>
 
@@ -73,7 +72,6 @@ private:
     bool                hasTimerExpired(Event& event);
     double                getNextTimerTimeout() const;
     void                addEventToBuffer(const Event& event);
-    bool                parent_requests_shutdown() const;
     
 private:
     class Timer {
@@ -186,7 +184,6 @@ private:
     Mutex*                        m_readyMutex;
     CondVar<bool>*                m_readyCondVar;
     std::queue<Event>            m_pending;
-    NonBlockingStream            m_parentStream;
 };
 
 #define EVENT_TYPE_ACCESSOR(type_)                                            \

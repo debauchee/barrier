@@ -17,33 +17,34 @@
 
 #pragma once
 
-// windows doesn't have a unistd.h so this class won't work as-written.
-// at the moment barrier doesn't need this functionality on windows so
-// it's left as a stub to be optimized out
 #if defined(_WIN32)
 
-class NonBlockingStream
+class StdinListen
 {
 public:
-    bool try_read_char(char &ch) const { return false; };
+    void           stdinThread(void*) {};
 };
 
-#else // non-windows platforms
+#else
+
+#include "base/IEventQueue.h"
+#include "base/TMethodJob.h"
+#include "mt/Thread.h"
 
 struct termios;
 
-class NonBlockingStream
+class StdinListen
 {
 public:
-    explicit NonBlockingStream(int fd = 0);
-    ~NonBlockingStream();
-
-    bool try_read_char(char &ch) const;
+    explicit StdinListen(IEventQueue* events);
+    ~StdinListen();
 
 private:
-    int _fd;
-    termios * _p_ta_previous;
-    int _cntl_previous;
+    void           stdinThread(void*);
+
+    IEventQueue*   m_events;
+    Thread*        m_thread;
+    termios*       _p_ta_previous;
 };
 
 #endif

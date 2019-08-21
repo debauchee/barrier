@@ -748,6 +748,11 @@ ServerApp::mainLoop()
         initIpcClient();
     }
 
+    // setup polling for stdin if not running in daemon mode
+    if (!argsBase().m_daemon) {
+        initStdinListen();
+    }
+
     // handle hangup signal by reloading the server's configuration
     ARCH->setSignalHandler(Arch::kHANGUP, &reloadSignalHandler, NULL);
     m_events->adoptHandler(m_events->forServerApp().reloadConfig(),

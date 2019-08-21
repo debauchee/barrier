@@ -202,22 +202,10 @@ EventQueue::adoptBuffer(IEventQueueBuffer* buffer)
 }
 
 bool
-EventQueue::parent_requests_shutdown() const
-{
-    char ch;
-    return m_parentStream.try_read_char(ch) && ch == ShutdownCh;
-}
-
-bool
 EventQueue::getEvent(Event& event, double timeout)
 {
     Stopwatch timer(true);
 retry:
-    // before handling any events make sure we don't need to shutdown
-    if (parent_requests_shutdown()) {
-        event = Event(Event::kQuit);
-        return false;
-    }
     // if no events are waiting then handle timers and then wait
     while (m_buffer->isEmpty()) {
         // handle timers first

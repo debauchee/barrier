@@ -64,7 +64,8 @@ App::App(IEventQueue* events, CreateTaskBarReceiverFunc createTaskBarReceiver, A
     m_createTaskBarReceiver(createTaskBarReceiver),
     m_appUtil(events),
     m_ipcClient(nullptr),
-    m_socketMultiplexer(nullptr)
+    m_socketMultiplexer(nullptr),
+    m_stdin(nullptr)
 {
     assert(s_instance == nullptr);
     s_instance = this;
@@ -74,6 +75,10 @@ App::~App()
 {
     s_instance = nullptr;
     delete m_args;
+
+    if (m_stdin) {
+        delete(m_stdin);
+    }
 }
 
 void
@@ -214,6 +219,14 @@ App::cleanupIpcClient()
     m_ipcClient->disconnect();
     m_events->removeHandler(m_events->forIpcClient().messageReceived(), m_ipcClient);
     delete m_ipcClient;
+}
+
+void
+App::initStdinListen()
+{
+#if !defined(_WIN32)
+    m_stdin = new StdinListen(m_events);
+#endif
 }
 
 void

@@ -455,6 +455,11 @@ ClientApp::mainLoop()
         initIpcClient();
     }
 
+    // setup polling for stdin if not running in daemon mode
+    if (!argsBase().m_daemon) {
+        initStdinListen();
+    }
+
     // run event loop.  if startClient() failed we're supposed to retry
     // later.  the timer installed by startClient() will take care of
     // that.

@@ -17,44 +17,47 @@
 
 #if !defined(_WIN32)
 
-#include "base/NonBlockingStream.h"
+#include "base/StdinListen.h"
+#include "../gui/src/ShutdownCh.h"
 
 #include <unistd.h> // tcgetattr/tcsetattr, read
 #include <termios.h> // tcgetattr/tcsetattr
-#include <fcntl.h>
-#include <errno.h>
-#include <assert.h>
 
-NonBlockingStream::NonBlockingStream(int fd) :
-    _fd(fd)
+StdinListen::StdinListen(IEventQueue* events) :
+    m_events(events),
+    m_thread(NULL)
 {
     // disable ICANON & ECHO so we don't have to wait for a newline
     // before we get data (and to keep it from being echoed back out)
     termios ta;
-    tcgetattr(fd, &ta);
+    tcgetattr(STDIN_FILENO, &ta);
     _p_ta_previous = new termios(ta);
     ta.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(fd, TCSANOW, &ta);
+    tcsetattr(STDIN_FILENO, TCSANOW, &ta);
 
-    // prevent IO from blocking so we can poll (read())
-    int _cntl_previous = fcntl(fd, F_GETFL);
-    fcntl(fd, F_SETFL, _cntl_previous | O_NONBLOCK);
+    m_thread = new Thread(new TMethodJob<StdinListen>(
+                                  this, &StdinListen::stdinThread));
 }
 
-NonBlockingStream::~NonBlockingStream()
+StdinListen::~StdinListen()
 {
-    tcsetattr(_fd, TCSANOW, _p_ta_previous);
-    fcntl(_fd, F_SETFL, _cntl_previous);
+    tcsetattr(STDIN_FILENO, TCSANOW, _p_ta_previous);
     delete _p_ta_previous;
 }
 
-bool NonBlockingStream::try_read_char(char &ch) const
+void
+StdinListen::stdinThread(void *)
 {
-    int result = read(_fd, &ch, 1);
-    if (result == 1)
-        return true;
-    assert(result == -1 && (errno == EAGAIN || errno == EWOULDBLOCK));
-    return false;
+    char ch;
+
+    while (1) {
+        if (read(STDIN_FILENO, &ch, 1) == 1) {
+            if (ch == ShutdownCh) {
+                m_events->addEvent(Event(Event::kQuit));
+                break;
+            }
+        }
+    }
 }
 
 #endif // !defined(_WIN32)
