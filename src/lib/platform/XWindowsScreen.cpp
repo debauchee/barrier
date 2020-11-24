@@ -2,11 +2,11 @@
  * barrier -- mouse and keyboard sharing utility
  * Copyright (C) 2012-2016 Symless Ltd.
  * Copyright (C) 2002 Chris Schoeneman
- * 
+ *
  * This package is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * found in the file LICENSE that should have accompanied this file.
- * 
+ *
  * This package is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -97,7 +97,7 @@ XWindowsScreen::XWindowsScreen(
 
 	if (mouseScrollDelta==0) m_mouseScrollDelta=120;
 	s_screen = this;
-	
+
 	if (!disableXInitThreads) {
 	  // initializes Xlib support for concurrent threads.
       if (m_impl->XInitThreads() == 0)
@@ -133,7 +133,7 @@ XWindowsScreen::XWindowsScreen(
 #ifdef HAVE_XI2
 		m_xi2detected = detectXI2();
 		if (m_xi2detected) {
-			selectXIRawMotion();
+			selectXIRawEventsPrimary();
 		} else
 #endif
 		{
@@ -145,6 +145,12 @@ XWindowsScreen::XWindowsScreen(
 		openIM();
 	}
 	else {
+#ifdef HAVE_XI2
+		m_xi2detected = detectXI2();
+		if (m_xi2detected) {
+			selectXIRawEventsSecondary();
+		}
+#endif
 		// become impervious to server grabs
         m_impl->XTestGrabControl(m_display, True);
 	}
@@ -238,8 +244,6 @@ XWindowsScreen::disable()
 void
 XWindowsScreen::enter()
 {
-	screensaver(false);
-
 	// release input context focus
 	if (m_ic != NULL) {
         m_impl->XUnsetICFocus(m_ic);
@@ -266,14 +270,14 @@ XWindowsScreen::enter()
             m_impl->DPMSForceLevel(m_display, DPMSModeOn);
 	}
 	#endif
-	
+
 	// unmap the hider/grab window.  this also ungrabs the mouse and
 	// keyboard if they're grabbed.
     m_impl->XUnmapWindow(m_display, m_window);
 
 /* maybe call this if entering for the screensaver
 	// set keyboard focus to root window.  the screensaver should then
-	// pick up key events for when the user enters a password to unlock. 
+	// pick up key events for when the user enters a password to unlock.
 	XSetInputFocus(m_display, PointerRoot, PointerRoot, CurrentTime);
 */
 
@@ -405,9 +409,11 @@ void
 XWindowsScreen::screensaver(bool activate)
 {
 	if (activate) {
+		m_screensaverNotificationTimer.reset();
 		m_screensaver->activate();
 	}
 	else {
+		m_screensaverNotificationTimer.reset();
 		m_screensaver->deactivate();
 	}
 }
@@ -1218,22 +1224,41 @@ XWindowsScreen::handleSystemEvent(const Event& event, void*)
 
 #ifdef HAVE_XI2
 	if (m_xi2detected) {
-		// Process RawMotion
+		// Process RawEvents
 		XGenericEventCookie *cookie = (XGenericEventCookie*)&xevent->xcookie;
-            if (m_impl->XGetEventData(m_display, cookie) &&
-				cookie->type == GenericEvent &&
-				cookie->extension == xi_opcode) {
-			if (cookie->evtype == XI_RawMotion) {
-				// Get current pointer's position
-				Window root, child;
-				XMotionEvent xmotion;
-				xmotion.type = MotionNotify;
-				xmotion.send_event = False; // Raw motion
-				xmotion.display = m_display;
-				xmotion.window = m_window;
-				/* xmotion's time, state and is_hint are not used */
-				unsigned int msk;
-                    xmotion.same_screen = m_impl->XQueryPointer(
+		if (m_impl->XGetEventData(m_display, cookie) &&
+			cookie->type == GenericEvent &&
+			cookie->extension == xi_opcode) {
+				LOGC(cookie->evtype == XI_RawTouchBegin, (CLOG_DEBUG1 "Touch begin on %s, onScreen = %s",
+						m_isPrimary ? "server" : "client",
+						m_isOnScreen ? "true" : "false"));
+
+				if (!m_isOnScreen && (cookie->evtype == XI_RawTouchBegin || cookie->evtype == XI_RawButtonPress )) {
+					// Touch or button press detected on local screen but cursor is not on screen => request focus from server
+					// Note: focus switching works on touch from client to server and vice versa, on mouse button press due
+					// to the nature of the shared server mouse only from server to client
+					SInt32 x, y;
+					// On touch event, getCursorPos sets x and y to the actual event coordinates. On mouse button press, x and
+					// y are set to the coordinates of the center of the screen.
+					// In the latter case, reusing m_x, m_y or m_xCursor, m_yCursor failed as they are not set on the client
+					// and thus trigger unexpected behavior (unexpected jumps to (0, 0) on button press)
+					getCursorPos(x, y);
+					sendEvent(m_events->forIScreen().localInput(), MotionInfo::alloc(x, y));
+					m_impl->XFreeEventData(m_display, cookie);
+					return;
+				}
+
+				if (cookie->evtype == XI_RawMotion) {
+					// Mouse motion detected on server => handle mouse motion
+					// Get current pointer's position
+					XMotionEvent xmotion;
+					xmotion.type = MotionNotify;
+					xmotion.send_event = False; // Raw motion
+					xmotion.display = m_display;
+					xmotion.window = m_window;
+					/* xmotion's time, state and is_hint are not used */
+					unsigned int msk;
+					xmotion.same_screen = m_impl->XQueryPointer(
 						m_display, m_root, &xmotion.root, &xmotion.subwindow,
 						&xmotion.x_root,
 						&xmotion.y_root,
@@ -1241,10 +1266,10 @@ XWindowsScreen::handleSystemEvent(const Event& event, void*)
 						&xmotion.y,
 						&msk);
 					onMouseMove(xmotion);
-                    m_impl->XFreeEventData(m_display, cookie);
+					m_impl->XFreeEventData(m_display, cookie);
 					return;
-			}
-                m_impl->XFreeEventData(m_display, cookie);
+				}
+				m_impl->XFreeEventData(m_display, cookie);
 		}
 	}
 #endif
@@ -2062,17 +2087,46 @@ XWindowsScreen::detectXI2()
 
 #ifdef HAVE_XI2
 void
-XWindowsScreen::selectXIRawMotion()
+XWindowsScreen::selectXIRawEventsPrimary()
 {
 	XIEventMask mask;
 
-	mask.deviceid = XIAllDevices;
-	mask.mask_len = XIMaskLen(XI_RawMotion);
-	mask.mask = (unsigned char*)calloc(mask.mask_len, sizeof(char));
 	mask.deviceid = XIAllMasterDevices;
-	memset(mask.mask, 0, 2);
-    XISetMask(mask.mask, XI_RawKeyRelease);
+	mask.mask_len = XIMaskLen(XI_LASTEVENT);
+	mask.mask = (unsigned char*) calloc(mask.mask_len, sizeof(char));
+	LOGC((mask.mask == nullptr), (CLOG_ERR "Cannot listen on XI2 events due to memory error"));
+
+	XISetMask(mask.mask, XI_RawKeyRelease);
 	XISetMask(mask.mask, XI_RawMotion);
+	// Detect touchscreen events on primary screen (= server)
+	XISetMask(mask.mask, XI_RawTouchBegin);
+	XISetMask(mask.mask, XI_RawTouchUpdate);
+	XISetMask(mask.mask, XI_RawTouchEnd);
+
+	m_impl->XISelectEvents(m_display, DefaultRootWindow(m_display), &mask, 1);
+	free(mask.mask);
+}
+
+void
+XWindowsScreen::selectXIRawEventsSecondary()
+{
+	XIEventMask mask;
+
+	mask.deviceid = XIAllMasterDevices;
+	mask.mask_len = XIMaskLen(XI_LASTEVENT);
+	mask.mask = (unsigned char*) calloc(mask.mask_len, sizeof(char));
+	LOGC((mask.mask == nullptr), (CLOG_ERR "Cannot listen on XI2 events due to memory error"));
+
+	// Detect mouse events (movement, button press) on secondary screens (= clients)
+	XISetMask(mask.mask, XI_RawMotion);
+	XISetMask(mask.mask, XI_RawButtonPress);
+	// Detect key press events on secondary screens (= clients)
+	XISetMask(mask.mask, XI_RawKeyPress);
+	// Detect touchscreen events on secondary screens (= clients)
+	XISetMask(mask.mask, XI_RawTouchBegin);
+	XISetMask(mask.mask, XI_RawTouchUpdate);
+	XISetMask(mask.mask, XI_RawTouchEnd);
+
     m_impl->XISelectEvents(m_display, DefaultRootWindow(m_display), &mask, 1);
 	free(mask.mask);
 }

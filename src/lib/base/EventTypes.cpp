@@ -177,6 +177,7 @@ REGISTER_EVENT(IPrimaryScreen, fakeInputEnd)
 
 REGISTER_EVENT(IScreen, error)
 REGISTER_EVENT(IScreen, shapeChanged)
+REGISTER_EVENT(IScreen, localInput)
 REGISTER_EVENT(IScreen, suspend)
 REGISTER_EVENT(IScreen, resume)
 

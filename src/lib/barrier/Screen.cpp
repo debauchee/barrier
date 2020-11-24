@@ -178,11 +178,9 @@ Screen::grabClipboard(ClipboardID id)
 void
 Screen::screensaver(bool activate)
 {
-    if (!m_isPrimary) {
-        // activate/deactivation screen saver iff synchronization enabled
-        if (m_screenSaverSync) {
-            m_screen->screensaver(activate);
-        }
+    // activate/deactivation screen saver iff synchronization enabled
+    if (m_screenSaverSync) {
+        m_screen->screensaver(activate);
     }
 }
 

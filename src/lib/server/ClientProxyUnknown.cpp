@@ -26,6 +26,7 @@
 #include "server/ClientProxy1_4.h"
 #include "server/ClientProxy1_5.h"
 #include "server/ClientProxy1_6.h"
+#include "server/ClientProxy1_7.h"
 #include "barrier/protocol_types.h"
 #include "barrier/ProtocolUtil.h"
 #include "barrier/XBarrier.h"
@@ -230,6 +231,10 @@ ClientProxyUnknown::handleData(const Event&, void*)
 
             case 6:
                 m_proxy = new ClientProxy1_6(name, m_stream, m_server, m_events);
+                break;
+
+            case 7:
+                m_proxy = new ClientProxy1_7(name, m_stream, m_server, m_events);
                 break;
             }
         }

@@ -2,11 +2,11 @@
  * barrier -- mouse and keyboard sharing utility
  * Copyright (C) 2012-2016 Symless Ltd.
  * Copyright (C) 2002 Chris Schoeneman
- * 
+ *
  * This package is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * found in the file LICENSE that should have accompanied this file.
- * 
+ *
  * This package is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -50,6 +50,7 @@ public:
     void                onInfoChanged();
     bool                onGrabClipboard(ClipboardID);
     void                onClipboardChanged(ClipboardID, const IClipboard*);
+    void                onLocalInput(SInt32 x, SInt32 y);
 
     //@}
 
@@ -58,7 +59,10 @@ public:
 
     // sending dragging information to server
     void                sendDragInfo(UInt32 fileCount, const char* info, size_t size);
-    
+
+    // Send screensaver information to server
+    void                sendScreensaver(bool activate);
+
 #ifdef BARRIER_TEST_ENV
     void                handleDataForTest() { handleData(Event(), NULL); }
 #endif
@@ -98,7 +102,7 @@ private:
     void                mouseMove();
     void                mouseRelativeMove();
     void                mouseWheel();
-    void                screensaver();
+    void                rcvScreensaver();
     void                resetOptions();
     void                setOptions();
     void                queryInfo();

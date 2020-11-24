@@ -139,10 +139,10 @@ PrimaryClient::disable()
 
 void
 PrimaryClient::enter(SInt32 xAbs, SInt32 yAbs,
-                UInt32 seqNum, KeyModifierMask mask, bool screensaver)
+                UInt32 seqNum, KeyModifierMask mask, bool forScreensaver)
 {
     m_screen->setSequenceNumber(seqNum);
-    if (!screensaver) {
+    if (!forScreensaver) {
         m_screen->warpCursor(xAbs, yAbs);
     }
     m_screen->enter(mask);
@@ -244,9 +244,9 @@ PrimaryClient::mouseWheel(SInt32, SInt32)
 }
 
 void
-PrimaryClient::screensaver(bool)
+PrimaryClient::screensaver(bool activate)
 {
-    // ignore
+    m_screen->screensaver(activate);
 }
 
 void

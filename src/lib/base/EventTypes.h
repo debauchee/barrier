@@ -651,6 +651,7 @@ public:
     IScreenEvents() :
         m_error(Event::kUnknown),
         m_shapeChanged(Event::kUnknown),
+        m_localInput(Event::kUnknown),
         m_suspend(Event::kUnknown),
         m_resume(Event::kUnknown) { }
 
@@ -671,6 +672,14 @@ public:
     */
     Event::Type        shapeChanged();
 
+    //! Get local input event type
+    /*!
+    Returns the local input event type. This is sent when the cursor
+    is not on the current screen but a local input is detected (e.g.
+    via touchscreen inputs or mouse movements).
+    */
+    Event::Type        localInput();
+
     //! Get suspend event type
     /*!
     Returns the suspend event type. This is sent whenever the system goes
@@ -690,6 +699,7 @@ public:
 private:
     Event::Type        m_error;
     Event::Type        m_shapeChanged;
+    Event::Type        m_localInput;
     Event::Type        m_suspend;
     Event::Type        m_resume;
 };

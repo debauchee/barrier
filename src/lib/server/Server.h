@@ -309,6 +309,7 @@ private:
     void                handleClientCloseTimeout(const Event&, void*);
     void                handleSwitchToScreenEvent(const Event&, void*);
     void                handleToggleScreenEvent(const Event&, void*);
+    void                handleLocalInputEvent(const Event&, void*);
     void                handleSwitchInDirectionEvent(const Event&, void*);
     void                handleKeyboardBroadcastEvent(const Event&,void*);
     void                handleLockCursorToScreenEvent(const Event&, void*);
@@ -425,7 +426,9 @@ private:
 
     // state saved when screen saver activates
     BaseClientProxy*    m_activeSaver;
-    SInt32                m_xSaver, m_ySaver;
+    SInt32              m_xSaver, m_ySaver;
+    Stopwatch           m_screensaverDelayTimer; // Used for preventing duplicate messages to clients
+    const double        SCREENSAVER_DELAY_THRESHOLD = 0.5;
 
     // common state for screen switch tests.  all tests are always
     // trying to reach the same screen in the same direction.

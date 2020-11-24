@@ -188,9 +188,12 @@ private:
     void                handleHello(const Event&, void*);
     void                handleSuspend(const Event& event, void*);
     void                handleResume(const Event& event, void*);
+    void                handleScreensaverActivatedEvent(const Event&, void*);
+    void                handleScreensaverDeactivatedEvent(const Event&, void*);
     void                handleFileChunkSending(const Event&, void*);
     void                handleFileRecieveCompleted(const Event&, void*);
     void                handleStopRetry(const Event&, void*);
+    void                handleLocalInputEvent(const Event&, void*);
     void                onFileRecieveCompleted();
     void                sendClipboardThread(void*);
 
