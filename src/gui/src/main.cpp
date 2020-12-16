@@ -67,6 +67,13 @@ int main(int argc, char* argv[])
     /* Workaround for QTBUG-40332 - "High ping when QNetworkAccessManager is instantiated" */
     ::setenv ("QT_BEARER_POLL_TIMEOUT", "-1", 1);
 #endif
+
+#if _WIN32
+    // winsock needs to be initialized for DefaultInterfaceIP
+    WSADATA wd;
+    WSAStartup(MAKEWORD(2, 0), &wd);
+#endif
+
 	QCoreApplication::setOrganizationName("Debauchee");
 	QCoreApplication::setOrganizationDomain("github.com");
 	QCoreApplication::setApplicationName("Barrier");

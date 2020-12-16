@@ -42,7 +42,6 @@ private slots:
     void errorHandle(DNSServiceErrorType errorCode);
 
 private:
-    QString getLocalIPAddresses();
     bool registerService(bool server);
 
 private:

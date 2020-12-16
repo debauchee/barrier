@@ -6,17 +6,25 @@ set (CMAKE_AUTORCC ON)
 set (CMAKE_AUTOUIC ON)
 set (CMAKE_INCLUDE_CURRENT_DIR ON)
 
-file (GLOB GUI_SOURCE_FILES src/*.cpp src/*.h)
-file (GLOB GUI_UI_FILES src/*.ui)
-
 if (WIN32)
-    set (GUI_RC_FILES res/win/Barrier.rc)
+    set (resources res/win/Barrier.rc)
+    set (arch "win32")
+else()
+    set (arch "unix")
+endif()
+
+file (GLOB sources src/*.cpp src/${arch}/*.cpp)
+file (GLOB headers src/*.h src/${arch}/*.h)
+file (GLOB designs src/*.ui)
+
+if (BARRIER_ADD_HEADERS)
+    list (APPEND sources ${headers})
 endif()
 
 add_executable (barrier WIN32
-    ${GUI_SOURCE_FILES}
-    ${GUI_UI_FILES}
-    ${GUI_RC_FILES}
+    ${sources}
+    ${designs}
+    ${resources}
     res/Barrier.qrc
 )
 
@@ -32,7 +40,7 @@ if (WIN32)
                   HINTS ENV BONJOUR_SDK_HOME
                   PATH_SUFFIXES "Lib/x64")
     set_target_properties (barrier PROPERTIES LINK_FLAGS "/NODEFAULTLIB:LIBCMT")
-    target_link_libraries (barrier ${DNSSD_LIB})
+    target_link_libraries (barrier ${DNSSD_LIB} Ws2_32.lib Iphlpapi.lib)
 elseif (APPLE)
     find_library(APPSERVICES_LIB ApplicationServices)
     target_link_libraries(barrier ${APPSERVICES_LIB})

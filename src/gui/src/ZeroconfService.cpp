@@ -20,6 +20,7 @@
 #include "MainWindow.h"
 #include "ZeroconfRegister.h"
 #include "ZeroconfBrowser.h"
+#include "DefaultInterfaceIP.h"
 
 #include <QtNetwork>
 #include <QMessageBox>
@@ -33,12 +34,6 @@
 #else
 #include <stdlib.h>
 #endif
-
-static const QStringList preferedIPAddress(
-                QStringList() <<
-                "192.168." <<
-                "10." <<
-                "172.");
 
 const char* ZeroconfService:: m_ServerServiceName = "_barrierServerZeroconf._tcp";
 const char* ZeroconfService:: m_ClientServiceName = "_barrierClientZeroconf._tcp";
@@ -124,27 +119,6 @@ void ZeroconfService::errorHandle(DNSServiceErrorType errorCode)
         tr("Error code: %1.").arg(errorCode));
 }
 
-QString ZeroconfService::getLocalIPAddresses()
-{
-    QStringList addresses;
-    foreach (const QHostAddress& address, QNetworkInterface::allAddresses()) {
-        if (address.protocol() == QAbstractSocket::IPv4Protocol &&
-            address != QHostAddress(QHostAddress::LocalHost)) {
-            addresses.append(address.toString());
-        }
-    }
-
-    foreach (const QString& preferedIP, preferedIPAddress) {
-        foreach (const QString& address, addresses) {
-            if (address.startsWith(preferedIP)) {
-                return address;
-            }
-        }
-    }
-
-    return "";
-}
-
 bool ZeroconfService::registerService(bool server)
 {
     bool result = true;
@@ -159,7 +133,7 @@ bool ZeroconfService::registerService(bool server)
         else {
             m_pZeroconfRegister = new ZeroconfRegister(this);
             if (server) {
-                QString localIP = getLocalIPAddresses();
+                QString localIP = QString::fromStdString(Debauchee::default_interface_ip());
                 if (localIP.isEmpty()) {
                     QMessageBox::warning(m_pMainWindow, tr("Barrier"),
                         tr("Failed to get local IP address. "
