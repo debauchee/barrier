@@ -184,6 +184,11 @@ public:
     be added.
     */
     virtual void        waitForReady() const = 0;
+    //! Restore the terminal settings
+    /*!
+    Called to restore the terminal settings after daemonizing.
+    */
+	virtual void        restoreTerminal() const = 0;
 
     //@}
     //! @name accessors

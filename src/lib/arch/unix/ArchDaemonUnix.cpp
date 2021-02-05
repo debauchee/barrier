@@ -20,6 +20,7 @@
 
 #include "arch/unix/XArchUnix.h"
 #include "base/Log.h"
+#include "barrier/App.h"
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -86,6 +87,8 @@ ArchDaemonUnix::daemonize(const char* name, DaemonFunc func)
         break;
 
     default:
+		// first restore terminal settings
+		App::instance().getEvents()->restoreTerminal();
         // parent exits
         exit(0);
     }

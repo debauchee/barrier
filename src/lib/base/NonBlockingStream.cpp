@@ -57,4 +57,10 @@ bool NonBlockingStream::try_read_char(char &ch) const
     return false;
 }
 
+void NonBlockingStream::restoreTerminal() const
+{
+    tcsetattr(_fd, TCSANOW, _p_ta_previous);
+    fcntl(_fd, F_SETFL, _cntl_previous);
+}
+
 #endif // !defined(_WIN32)
