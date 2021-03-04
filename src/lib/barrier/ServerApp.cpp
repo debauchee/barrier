@@ -135,7 +135,9 @@ ServerApp::help()
     }
 
     std::ostringstream buffer;
-    buffer << "Start the barrier server component.\n"
+    buffer << "Start the barrier server component. The server shares the keyboard &\n"
+           << "mouse of the local machine with the connected clients based on the\n"
+           << "configuration file.\n"
            << "\n"
            << "Usage: " << args().m_exename
            << " [--address <address>]"
