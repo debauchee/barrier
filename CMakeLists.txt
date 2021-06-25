@@ -317,10 +317,21 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
         ${OPENSSL_ROOT}/lib/ssleay32.lib
     )
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    find_program(APT_PROGRAM "apt")
     find_program(BREW_PROGRAM "brew")
     find_program(PORT_PROGRAM "port")
 
-    if (IS_DIRECTORY /opt/local AND PORT_PROGRAM)
+    if (IS_DIRECTORY /opt/procursus AND APT_PROGRAM)
+        # procursus/apt
+        set (OPENSSL_ROOT /opt/procursus)
+
+        include_directories (BEFORE SYSTEM ${OPENSSL_ROOT}/include)
+
+        set (OPENSSL_LIBS
+            ${OPENSSL_ROOT}/lib/libssl.a
+            ${OPENSSL_ROOT}/lib/libcrypto.a
+        )
+    elseif (IS_DIRECTORY /opt/local AND PORT_PROGRAM)
         # macports
         set (OPENSSL_ROOT /opt/local)
 
@@ -332,6 +343,16 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     elseif (IS_DIRECTORY /usr/local/opt/openssl AND BREW_PROGRAM)
         # brew
         set (OPENSSL_ROOT /usr/local/opt/openssl)
+
+        include_directories (BEFORE SYSTEM ${OPENSSL_ROOT}/include)
+
+        set (OPENSSL_LIBS
+            ${OPENSSL_ROOT}/lib/libssl.a
+            ${OPENSSL_ROOT}/lib/libcrypto.a
+        )
+    elseif (IS_DIRECTORY /opt/homebrew/opt/openssl AND BREW_PROGRAM)
+        # brew
+        set (OPENSSL_ROOT /opt/homebrew/opt/openssl)
 
         include_directories (BEFORE SYSTEM ${OPENSSL_ROOT}/include)
 
