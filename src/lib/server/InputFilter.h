@@ -270,6 +270,23 @@ public:
         IEventQueue*            m_events;
     };
 
+    // UserScriptAction
+    class UserScriptAction : public Action {
+    public:
+        UserScriptAction(IEventQueue* events, const std::string& scriptCommand);
+
+        std::string getScriptCommand() const;
+
+        // Action overrides
+        virtual Action* clone() const;
+        virtual String format() const;
+        virtual void perform(const Event&);
+
+    private:
+        std::string                    m_scriptCommand;
+        IEventQueue* m_events;
+    };
+
     class Rule {
     public:
         Rule();

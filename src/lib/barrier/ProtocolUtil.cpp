@@ -62,6 +62,9 @@ ProtocolUtil::readf(barrier::IStream* stream, const char* fmt, ...)
     catch (XIO&) {
         result = false;
     }
+    catch (const std::bad_alloc&) {
+        result = false;
+    }
     va_end(args);
     return result;
 }
@@ -79,18 +82,17 @@ ProtocolUtil::vwritef(barrier::IStream* stream,
     }
 
     // fill buffer
-    UInt8* buffer = new UInt8[size];
-    writef_void(buffer, fmt, args);
+    std::vector<UInt8> buffer;
+    buffer.reserve(size);
+    writef_void(buffer.data(), fmt, args);
 
     try {
         // write buffer
-        stream->write(buffer, size);
+        stream->write(buffer.data(), size);
         LOG((CLOG_DEBUG2 "wrote %d bytes", size));
-
-        delete[] buffer;
     }
-    catch (XBase&) {
-        delete[] buffer;
+    catch (const XBase& exception) {
+        LOG((CLOG_DEBUG2 "Exception <%s> during wrote %d bytes into stream", exception.what(), size));
         throw;
     }
 }

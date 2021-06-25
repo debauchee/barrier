@@ -168,7 +168,10 @@ private:
     "      --enable-drag-drop   enable file drag & drop.\n" \
     "      --enable-crypto      enable the crypto (ssl) plugin.\n" \
     "      --profile-dir <path> use named profile directory instead.\n" \
-    "      --drop-dir <path>    use named drop target directory instead.\n"
+    "      --drop-dir <path>    use named drop target directory instead.\n" \
+    "      --headless-mode      when any client connected, if server screen is\n" \
+    "                             holding the input focus, server will actively\n" \
+    "                             switch input focus to the client.\n"
 
 #define HELP_COMMON_INFO_2 \
     "  -h, --help               display this help and exit.\n" \

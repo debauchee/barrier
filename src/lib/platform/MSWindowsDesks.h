@@ -68,7 +68,7 @@ public:
     MSWindowsDesks(
         bool isPrimary, bool noHooks,
         const IScreenSaver* screensaver, IEventQueue* events,
-        IJob* updateKeys, bool stopOnDeskSwitch);
+        IJob* updateKeys, bool stopOnDeskSwitch, bool headlessMode);
     ~MSWindowsDesks();
 
     //! @name manipulators
@@ -294,4 +294,6 @@ private:
 
     // true if program should stop on desk switch.
     bool                m_stopOnDeskSwitch;
+
+    bool                m_headlessMode;
 };

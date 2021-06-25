@@ -240,7 +240,8 @@ void
 Client::enter(SInt32 xAbs, SInt32 yAbs, UInt32, KeyModifierMask mask, bool)
 {
     m_active = true;
-    m_screen->mouseMove(xAbs, yAbs);
+    if (!m_args.m_headlessMode)
+        m_screen->mouseMove(xAbs, yAbs);
     m_screen->enter(mask);
 
     if (m_sendFileThread != NULL) {
@@ -515,7 +516,7 @@ Client::setupTimer()
 {
     assert(m_timer == NULL);
 
-    m_timer = m_events->newOneShotTimer(15.0, NULL);
+    m_timer = m_events->newOneShotTimer(2.0, NULL);
     m_events->adoptHandler(Event::kTimer, m_timer,
                             new TMethodEventJob<Client>(this,
                                 &Client::handleConnectTimeout));

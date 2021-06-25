@@ -114,6 +114,9 @@ App::run(int argc, char** argv)
         // using the exit(int) function!
         result = e.getCode();
     }
+    catch (std::runtime_error& re) {
+        LOG((CLOG_CRIT "A runtime error occurred: %s\n", re.what()));
+    }
     catch (std::exception& e) {
         LOG((CLOG_CRIT "An error occurred: %s\n", e.what()));
     }

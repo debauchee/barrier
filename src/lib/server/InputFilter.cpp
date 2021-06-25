@@ -558,7 +558,7 @@ std::string InputFilter::KeystrokeAction::format() const
         return barrier::string::sprintf("%s(%s,%.*s)", type,
                             barrier::KeyMap::formatKey(m_keyInfo->m_key,
                                 m_keyInfo->m_mask).c_str(),
-                            strlen(m_keyInfo->m_screens + 1) - 1,
+                            strnlen(m_keyInfo->m_screens + 1, SIZE_MAX) - 1,
                             m_keyInfo->m_screens + 1);
     }
 }
@@ -658,6 +658,53 @@ const char*
 InputFilter::MouseButtonAction::formatName() const
 {
     return (m_press ? "mouseDown" : "mouseUp");
+}
+
+
+InputFilter::UserScriptAction::UserScriptAction(IEventQueue* events,
+        const std::string& scriptCommand) :
+    m_scriptCommand(scriptCommand),
+    m_events(events)
+{
+    // do nothing
+}
+
+std::string InputFilter::UserScriptAction::getScriptCommand() const
+{
+    return m_scriptCommand;
+}
+
+InputFilter::Action*
+InputFilter::UserScriptAction::clone() const
+{
+    return new UserScriptAction(*this);
+}
+
+std::string InputFilter::UserScriptAction::format() const
+{
+    return barrier::string::sprintf("userScript(%s)", m_scriptCommand.c_str());
+}
+
+void
+InputFilter::UserScriptAction::perform(const Event& event)
+{
+    // pick screen name.  if m_screen is empty then use the screen from
+    // event if it has one.
+    std::string scriptCommand = m_scriptCommand;
+    if (scriptCommand.empty()) {
+        LOG((CLOG_ERR "script ID empty"));
+        return;
+    }
+
+    // exec script
+#if !defined(_WIN32)
+    std::string s = barrier::string::sprintf(R"(sh -c '%s')", scriptCommand.c_str());
+#else
+    std::string s = barrier::string::sprintf(R"(cmd.exe /C "%s")", scriptCommand.c_str());
+
+#endif
+    LOG((CLOG_DEBUG "%s",s.c_str()));
+    system(s.c_str());
 }
 
 //

@@ -61,7 +61,8 @@ AppConfig::AppConfig(QSettings* settings) :
     m_CryptoEnabled(false),
     m_AutoHide(false),
     m_AutoStart(false),
-    m_MinimizeToTray(false)
+    m_MinimizeToTray(false),
+    m_HeadlessMode(false)
 {
     Q_ASSERT(m_pSettings);
 
@@ -161,6 +162,7 @@ void AppConfig::loadSettings()
     m_AutoHide = settings().value("autoHide", false).toBool();
     m_AutoStart = settings().value("autoStart", false).toBool();
     m_MinimizeToTray = settings().value("minimizeToTray", false).toBool();
+    m_HeadlessMode = settings().value("headlessMode", false).toBool();
 }
 
 void AppConfig::saveSettings()
@@ -184,6 +186,7 @@ void AppConfig::saveSettings()
     settings().setValue("autoHide", m_AutoHide);
     settings().setValue("autoStart", m_AutoStart);
     settings().setValue("minimizeToTray", m_MinimizeToTray);
+    settings().setValue("headlessMode", m_HeadlessMode);
     settings().sync();
 }
 
@@ -236,3 +239,7 @@ bool AppConfig::getAutoStart() { return m_AutoStart; }
 void AppConfig::setMinimizeToTray(bool b) { m_MinimizeToTray = b; }
 
 bool AppConfig::getMinimizeToTray() { return m_MinimizeToTray; }
+
+void AppConfig::setHeadlessMode(bool b) { m_HeadlessMode = b; }
+
+bool AppConfig::getHeadlessMode() { return m_HeadlessMode; }

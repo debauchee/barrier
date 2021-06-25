@@ -519,6 +519,9 @@ void MainWindow::startBarrier()
         args << "--enable-crypto";
     }
 
+    if (m_AppConfig->getHeadlessMode()) {
+        args << "--headless-mode";
+    }
 #if defined(Q_OS_WIN)
     // on windows, the profile directory changes depending on the user that
     // launched the process (e.g. when launched with elevation). setting the

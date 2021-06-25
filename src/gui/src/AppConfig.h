@@ -100,6 +100,9 @@ class AppConfig: public QObject
         void setMinimizeToTray(bool b);
         bool getMinimizeToTray();
 
+        void setHeadlessMode(bool b);
+        bool getHeadlessMode();
+
         void saveSettings();
 
 protected:
@@ -135,6 +138,7 @@ protected:
         bool m_AutoHide;
         bool m_AutoStart;
         bool m_MinimizeToTray;
+        bool m_HeadlessMode;
 
         static const char m_BarriersName[];
         static const char m_BarriercName[];

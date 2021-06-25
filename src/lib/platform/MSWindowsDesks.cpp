@@ -100,7 +100,7 @@
 MSWindowsDesks::MSWindowsDesks(
         bool isPrimary, bool noHooks,
         const IScreenSaver* screensaver, IEventQueue* events,
-        IJob* updateKeys, bool stopOnDeskSwitch) :
+        IJob* updateKeys, bool stopOnDeskSwitch, bool headlessMode) :
     m_isPrimary(isPrimary),
     m_noHooks(noHooks),
     m_isOnScreen(m_isPrimary),
@@ -117,7 +117,8 @@ MSWindowsDesks::MSWindowsDesks(
     m_deskReady(&m_mutex, false),
     m_updateKeys(updateKeys),
     m_events(events),
-    m_stopOnDeskSwitch(stopOnDeskSwitch)
+    m_stopOnDeskSwitch(stopOnDeskSwitch),
+    m_headlessMode(headlessMode)
 {
     m_cursor    = createBlankCursor();
     m_deskClass = createDeskWindowClass(m_isPrimary);
@@ -596,9 +597,11 @@ MSWindowsDesks::deskLeave(Desk* desk, HKL keyLayout)
         // we aren't notified when the mouse leaves our window.
         SetCapture(desk->m_window);
 
-        // warp the mouse to the cursor center
-        LOG((CLOG_DEBUG2 "warping cursor to center: %+d,%+d", m_xCenter, m_yCenter));
-        deskMouseMove(m_xCenter, m_yCenter);
+        if (!m_headlessMode) {
+            // warp the mouse to the cursor center
+            LOG((CLOG_DEBUG2 "warping cursor to center: %+d,%+d", m_xCenter, m_yCenter));
+            deskMouseMove(m_xCenter, m_yCenter);
+        }
     }
 }
 

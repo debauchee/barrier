@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>372</width>
-    <height>484</height>
+    <height>508</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -246,6 +246,37 @@
             <string>off</string>
            </property>
           </item>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout">
+        <item>
+         <widget class="QRadioButton" name="m_pRadioUserScript">
+          <property name="text">
+           <string>User Script</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="m_pUserScriptCommand">
+          <property name="text">
+           <string>script1</string>
+          </property>
          </widget>
         </item>
        </layout>
@@ -585,6 +616,54 @@
     <hint type="destinationlabel">
      <x>185</x>
      <y>123</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>m_pRadioUserScript</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>m_pUserScriptCommand</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>63</x>
+     <y>385</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>291</x>
+     <y>385</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>m_pRadioUserScript</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>m_pKeySequenceWidgetHotkey</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>63</x>
+     <y>385</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>185</x>
+     <y>118</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>m_pRadioUserScript</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>m_pGroupBoxScreens</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>63</x>
+     <y>385</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>185</x>
+     <y>189</y>
     </hint>
    </hints>
   </connection>

@@ -93,6 +93,7 @@ MSWindowsScreen::MSWindowsScreen(
     bool isPrimary,
     bool noHooks,
     bool stopOnDeskSwitch,
+    bool headlessMode,
     IEventQueue* events) :
     PlatformScreen(events),
     m_isPrimary(isPrimary),
@@ -136,7 +137,8 @@ MSWindowsScreen::MSWindowsScreen(
                             m_events,
                             new TMethodJob<MSWindowsScreen>(
                                 this, &MSWindowsScreen::updateKeysCB),
-                            stopOnDeskSwitch);
+                            stopOnDeskSwitch,
+                            headlessMode);
         m_keyState    = new MSWindowsKeyState(m_desks, getEventTarget(), m_events);
 
         updateScreenShape();
@@ -311,6 +313,13 @@ MSWindowsScreen::enter()
 bool
 MSWindowsScreen::leave()
 {
+    POINT pos;
+    if (!getThisCursorPos(&pos))
+    {
+        LOG((CLOG_DEBUG "Unable to leave screen as Windows security has disabled critical functions required to let barrier work"));
+        //unable to get position this means barrier will break if the cursor leaves the screen
+        return false;
+    }
     // get keyboard layout of foreground window.  we'll use this
     // keyboard layout for translating keys sent to clients.
     HWND window  = GetForegroundWindow();
@@ -519,6 +528,60 @@ void
 MSWindowsScreen::getCursorPos(SInt32& x, SInt32& y) const
 {
     m_desks->getCursorPos(x, y);
+}
+
+/*
+ * getThisCursorPos and setThisCursorPos will attempt to negotiate with the system
+ * to try get the and set the mouse position, however on the logon screen due to
+ * hooks this process has it may unable to work around the problem. Although these
+ * functions did not fix the issue at hand (#5294) its worth keeping them here anyway.
+ */
+bool MSWindowsScreen::getThisCursorPos(LPPOINT pos)
+{
+    auto result = GetCursorPos(pos);
+    auto error = GetLastError();
+    LOG((CLOG_DEBUG3 "%s Attempt: 1 , status %d, code: %d Pos {%d, %d}", __func__, result, error, pos->x, pos->y));
+    if (!result)
+    {
+        result = GetCursorPos(pos);
+        error = GetLastError();
+        LOG((CLOG_DEBUG3 "%s Attempt: 2, status %d, code: %d Pos {%d, %d}", __func__, result, error, pos->x, pos->y));
+        updateDesktopThread();
+    }
+    return result;
+}
+
+bool MSWindowsScreen::setThisCursorPos(int x, int y)
+{
+    auto result = SetCursorPos(x, y);
+    auto error = GetLastError();
+    LOG((CLOG_DEBUG3 "%s Attempt: 1, status %d, code: %d", __func__,  result, error));
+    if (!result)
+    {
+        result = SetCursorPos(x, y);
+        error = GetLastError();
+        LOG((CLOG_DEBUG3 "%s Attempt: 2, status %d, code: %d", __func__, result, error));
+        updateDesktopThread();
+    }
+
+    return result;
+}
+
+void MSWindowsScreen::updateDesktopThread()
+{
+
+    LOG((CLOG_DEBUG3 "Failed to set cursor Attempting to switch desktop"));
+    SetLastError(0);
+    HDESK cur_hdesk = OpenInputDesktop(0, true, GENERIC_ALL);
+
+    auto error = GetLastError();
+    LOG((CLOG_DEBUG3 "\tGetting desktop Handle: %p Status code: %d", cur_hdesk, error));
+
+    error = GetLastError();
+    LOG((CLOG_DEBUG3 "\tSetting desktop return: %d Status code: %d", SetThreadDesktop(cur_hdesk), GetLastError()));
+
+    CloseDesktop(cur_hdesk);
+
 }
 
 void
@@ -1505,11 +1568,11 @@ MSWindowsScreen::warpCursorNoFlush(SInt32 x, SInt32 y)
 
     // warp mouse.  hopefully this inserts a mouse motion event
     // between the previous message and the following message.
-    SetCursorPos(x, y);
+    setThisCursorPos(x, y);
 
     // check to see if the mouse pos was set correctly
     POINT cursorPos;
-    GetCursorPos(&cursorPos);
+    getThisCursorPos(&cursorPos);
 
     // there is a bug or round error in SetCursorPos and GetCursorPos on
     // a high DPI setting. The check here is for Vista/7 login screen.

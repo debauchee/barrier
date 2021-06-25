@@ -267,6 +267,18 @@ ServerApp::handleClientConnected(const Event&, void* vlistener)
     if (client != NULL) {
         m_server->adoptClient(client);
         updateStatus();
+        if( args().m_headlessMode && m_server->isServerHoldFocus() ) {
+            std::string screen = args().m_config->getCanonicalName(client->getName());
+            if (screen.empty()) {
+                screen = client->getName();
+            }
+            if(screen.empty()) return;
+            // send event
+            Server::SwitchToScreenInfo* info =
+                Server::SwitchToScreenInfo::alloc(screen);
+            m_events->addEvent(Event(m_events->forServer().switchToScreen(),
+                                     args().m_config->getInputFilter(), info));
+        }
     }
 }
 
@@ -604,7 +616,7 @@ ServerApp::createScreen()
 {
 #if WINAPI_MSWINDOWS
     return new barrier::Screen(new MSWindowsScreen(
-        true, args().m_noHooks, args().m_stopOnDeskSwitch, m_events), m_events);
+        true, args().m_noHooks, args().m_stopOnDeskSwitch, args().m_headlessMode, m_events), m_events);
 #elif WINAPI_XWINDOWS
     return new barrier::Screen(new XWindowsScreen(
         new XWindowsImpl(),

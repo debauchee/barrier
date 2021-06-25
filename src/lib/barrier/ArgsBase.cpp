@@ -44,7 +44,8 @@ m_shouldExit(false),
 m_barrierAddress(),
 m_enableCrypto(false),
 m_profileDirectory(""),
-m_pluginDirectory("")
+m_pluginDirectory(""),
+m_headlessMode(false)
 {
 }
 

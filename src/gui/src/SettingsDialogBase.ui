@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>368</width>
-    <height>428</height>
+    <height>454</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -130,6 +130,13 @@
        <widget class="QCheckBox" name="m_pCheckBoxAutoStart">
         <property name="text">
          <string>Start &amp;Barrier on startup</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QCheckBox" name="m_pCheckBoxHeadlessMode">
+        <property name="text">
+         <string>Headless &amp;mode</string>
         </property>
        </widget>
       </item>

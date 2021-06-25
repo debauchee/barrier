@@ -26,7 +26,8 @@ const char* Action::m_ActionTypeNames[] =
     "keyDown", "keyUp", "keystroke",
     "switchToScreen", "toggleScreen",
     "switchInDirection", "lockCursorToScreen",
-    "mouseDown", "mouseUp", "mousebutton"
+    "userScript",
+    "mouseDown", "mouseUp", "mousebutton",
 };
 
 const char* Action::m_SwitchDirectionNames[] = { "left", "right", "up", "down" };
@@ -37,6 +38,7 @@ Action::Action() :
     m_Type(keystroke),
     m_TypeScreenNames(),
     m_SwitchScreenName(),
+    m_UserScriptCommand(),
     m_SwitchDirection(switchLeft),
     m_LockCursorMode(lockCursorToggle),
     m_ActiveOnRelease(false),
@@ -105,6 +107,11 @@ QString Action::text() const
             text += ")";
             break;
 
+        case userScript:
+            text += "(";
+            text += userScriptCommand();
+            text += ")";
+            break;
         default:
             Q_ASSERT(0);
             break;
@@ -133,6 +140,7 @@ void Action::loadSettings(QSettings& settings)
     setLockCursorMode(settings.value("lockCursorToScreen", lockCursorToggle).toInt());
     setActiveOnRelease(settings.value("activeOnRelease", false).toBool());
     setHaveScreens(settings.value("hasScreens", false).toBool());
+    setUserScriptCommand(settings.value("userScriptCommand").toString());
 }
 
 void Action::saveSettings(QSettings& settings) const
@@ -153,6 +161,7 @@ void Action::saveSettings(QSettings& settings) const
     settings.setValue("lockCursorToScreen", lockCursorMode());
     settings.setValue("activeOnRelease", activeOnRelease());
     settings.setValue("hasScreens", haveScreens());
+    settings.setValue("userScriptCommand", userScriptCommand());
 }
 
 QTextStream& operator<<(QTextStream& outStream, const Action& action)

@@ -35,7 +35,8 @@ class Action
     public:
         enum ActionType { keyDown, keyUp, keystroke,
                           switchToScreen, toggleScreen, switchInDirection,
-                          lockCursorToScreen, mouseDown, mouseUp, mousebutton };
+                          lockCursorToScreen, userScript,
+                          mouseDown, mouseUp, mousebutton };
         enum SwitchDirection { switchLeft, switchRight, switchUp, switchDown };
         enum LockCursorMode { lockCursorToggle, lockCursonOn, lockCursorOff  };
 
@@ -72,11 +73,15 @@ class Action
         bool haveScreens() const { return m_HasScreens; }
         void setHaveScreens(bool b) { m_HasScreens = b; }
 
+        const QString& userScriptCommand() const { return m_UserScriptCommand; }
+        void setUserScriptCommand(const QString& n) { m_UserScriptCommand = n; }
+
     private:
         KeySequence m_KeySequence;
         int m_Type;
         QStringList m_TypeScreenNames;
         QString m_SwitchScreenName;
+        QString m_UserScriptCommand;
         int m_SwitchDirection;
         int m_LockCursorMode;
         bool m_ActiveOnRelease;

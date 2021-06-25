@@ -179,6 +179,10 @@ public:
     //! Return fake drag file list
     DragFileList        getFakeDragFileList() { return m_fakeDragFileList; }
 
+    //! Return true if fucus in primary clinet
+    bool                isServerHoldFocus() { return (m_active ==
+                            (BaseClientProxy*) m_primaryClient); }
+
     //@}
 
 private:

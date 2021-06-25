@@ -51,6 +51,7 @@ SettingsDialog::SettingsDialog(QWidget* parent, AppConfig& config) :
     m_pCheckBoxAutoStart->setChecked(appConfig().getAutoStart());
     m_pCheckBoxMinimizeToTray->setChecked(appConfig().getMinimizeToTray());
     m_pCheckBoxEnableCrypto->setChecked(m_appConfig.getCryptoEnabled());
+    m_pCheckBoxHeadlessMode->setChecked(m_appConfig.getHeadlessMode());
 
 #if defined(Q_OS_WIN)
     m_pComboElevate->setCurrentIndex(static_cast<int>(appConfig().elevateMode()));
@@ -75,6 +76,7 @@ void SettingsDialog::accept()
     m_appConfig.setAutoHide(m_pCheckBoxAutoHide->isChecked());
     m_appConfig.setAutoStart(m_pCheckBoxAutoStart->isChecked());
     m_appConfig.setMinimizeToTray(m_pCheckBoxMinimizeToTray->isChecked());
+    m_appConfig.setHeadlessMode(m_pCheckBoxHeadlessMode->isChecked());
     m_appConfig.saveSettings();
     QDialog::accept();
 }

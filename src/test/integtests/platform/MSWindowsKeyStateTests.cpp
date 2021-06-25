@@ -53,7 +53,7 @@ protected:
 		return new MSWindowsDesks(
 			true, false, m_screensaver, eventQueue,
 			new TMethodJob<MSWindowsKeyStateTests>(
-				this, &MSWindowsKeyStateTests::updateKeysCB), false);
+				this, &MSWindowsKeyStateTests::updateKeysCB), false, false);
 	}
 
 	void* getEventTarget() const
