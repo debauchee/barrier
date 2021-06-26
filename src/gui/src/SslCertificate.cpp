@@ -150,7 +150,7 @@ void SslCertificate::generateFingerprint(const QString& certificateFilename)
     QStringList arguments;
     arguments.append("x509");
     arguments.append("-fingerprint");
-    arguments.append("-sha1");
+    arguments.append("-sha256");
     arguments.append("-noout");
     arguments.append("-in");
     arguments.append(certificateFilename);

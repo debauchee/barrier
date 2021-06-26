@@ -682,7 +682,7 @@ SecureSocket::verifyCertFingerprint()
     EVP_MD* tempDigest;
     unsigned char tempFingerprint[EVP_MAX_MD_SIZE];
     unsigned int tempFingerprintLen;
-    tempDigest = (EVP_MD*)EVP_sha1();
+    tempDigest = (EVP_MD*)EVP_sha256();
     int digestResult = X509_digest(cert, tempDigest, tempFingerprint, &tempFingerprintLen);
 
     if (digestResult <= 0) {
