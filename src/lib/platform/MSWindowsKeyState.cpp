@@ -61,12 +61,12 @@ const KeyID				MSWindowsKeyState::s_virtualKey[] =
 	/* 0x012 */ { kKeyAlt_L },		// VK_MENU
 	/* 0x013 */ { kKeyPause },		// VK_PAUSE
 	/* 0x014 */ { kKeyCapsLock },	// VK_CAPITAL
-	/* 0x015 */ { kKeyKana },		// VK_HANGUL, VK_KANA
-	/* 0x016 */ { kKeyNone },		// undefined
+	/* 0x015 */ { kKeyNone },		// undefined
+	/* 0x016 */ { kKeyKana },		// VK_HANGUL, VK_KANA, VK_IME_ON
 	/* 0x017 */ { kKeyNone },		// VK_JUNJA
 	/* 0x018 */ { kKeyNone },		// VK_FINAL
 	/* 0x019 */ { kKeyKanzi },		// VK_HANJA, VK_KANJI
-	/* 0x01a */ { kKeyNone },		// undefined
+	/* 0x01a */ { kKeyEisuToggle },	// VK_IME_OFF
 	/* 0x01b */ { kKeyEscape },		// VK_ESCAPE
 	/* 0x01c */ { kKeyHenkan },		// VK_CONVERT
 	/* 0x01d */ { kKeyMuhenkan },	// VK_NONCONVERT
