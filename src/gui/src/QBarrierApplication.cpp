@@ -29,6 +29,12 @@ QBarrierApplication::QBarrierApplication(int& argc, char** argv) :
     m_Translator(NULL)
 {
     s_Instance = this;
+
+    // By default do not quit when the last window is closed as we minimise
+    // to the system tray, but listen for the lastWindow closing so that
+    // if the system tray is not available we can quit.
+    setQuitOnLastWindowClosed(false);
+    connect(this, &QApplication::lastWindowClosed, this, &QBarrierApplication::onLastWindowClosed);
 }
 
 QBarrierApplication::~QBarrierApplication()
@@ -68,4 +74,13 @@ void QBarrierApplication::setTranslator(QTranslator* translator)
 {
     m_Translator = translator;
     installTranslator(m_Translator);
+}
+
+void QBarrierApplication::onLastWindowClosed()
+{
+    // If there is no system tray available then quit when the last window is closed
+    if (!QSystemTrayIcon::isSystemTrayAvailable())
+    {
+        quit();
+    }
 }

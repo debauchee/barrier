@@ -52,6 +52,7 @@
 #include <Windows.h>
 #endif
 
+static const int systemTrayWaitTime = 10000;
 static const QString allFilesFilter(QObject::tr("All files (*.*)"));
 #if defined(Q_OS_WIN)
 static const char barrierConfigName[] = "barrier.sgc";
@@ -156,6 +157,9 @@ MainWindow::MainWindow(QSettings& settings, AppConfig& appConfig) :
     m_pComboServerList->hide();
     m_pLabelPadlock->hide();
 
+    m_OpenHiddenTrayTimer.setSingleShot(true);
+    connect(&m_OpenHiddenTrayTimer, &QTimer::timeout, this, &MainWindow::on_m_OpenHiddenTrayTimer_triggered);
+
     updateSSLFingerprint();
 
     // resize window to smallest reasonable size
@@ -190,6 +194,28 @@ void MainWindow::open()
 
     if (appConfig().getAutoHide()) {
         hide();
+
+        // If system tray is not available, start a timer to ensure we don't become
+        // stuck in a hidden state
+        //
+        // The previous solution for this would wait at the startup of the app to
+        // see if the system tray becomes available before showing any window - even
+        // if the user didn't have autohide enabled.
+        //
+        // This solution instead, hides the window if they have autohide enabled, or shows
+        // the window if they don't. Then if the user has selected to autohide the window
+        // it checks after a period of time if the system tray is not available - if it
+        // isn't then it forces the window to show.
+        //
+        // This provides a much better UX for the two main use cases (user starting app with
+        // autohide enabled with system tray available and user starting app with autohide
+        // disabled with no system tray available). And provides a workaround for the edge
+        // case of a user enabling autohide with no system tray available (this should now
+        // be harder to do as the option in settings will become disabled).
+        if (!QSystemTrayIcon::isSystemTrayAvailable())
+        {
+            m_OpenHiddenTrayTimer.start(systemTrayWaitTime);
+        }
     } else {
         showNormal();
     }
@@ -205,6 +231,18 @@ void MainWindow::open()
         m_SuppressEmptyServerWarning = true;
         startBarrier();
         m_SuppressEmptyServerWarning = false;
+    }
+}
+
+void MainWindow::on_m_OpenHiddenTrayTimer_triggered()
+{
+    // If the system tray is still not available then force window to show
+    if (!QSystemTrayIcon::isSystemTrayAvailable())
+    {
+        fprintf(stdout, "System tray not available, force disabling auto hide!\n");
+        m_AppConfig->setAutoHide(false);
+
+        showNormal();
     }
 }
 
@@ -1277,7 +1315,8 @@ void MainWindow::bonjourInstallFinished()
 
 void MainWindow::windowStateChanged()
 {
-    if (windowState() == Qt::WindowMinimized && appConfig().getMinimizeToTray())
+    // If we are minimising and minimise to tray is enabled and system tray is available then hide the window
+    if (windowState() == Qt::WindowMinimized && appConfig().getMinimizeToTray() && QSystemTrayIcon::isSystemTrayAvailable())
         hide();
 }
 

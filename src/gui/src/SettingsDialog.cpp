@@ -52,6 +52,10 @@ SettingsDialog::SettingsDialog(QWidget* parent, AppConfig& config) :
     m_pCheckBoxMinimizeToTray->setChecked(appConfig().getMinimizeToTray());
     m_pCheckBoxEnableCrypto->setChecked(m_appConfig.getCryptoEnabled());
 
+    // Don't allow auto hide or minimise to tray if it's not available
+    m_pCheckBoxAutoHide->setEnabled(QSystemTrayIcon::isSystemTrayAvailable());
+    m_pCheckBoxMinimizeToTray->setEnabled(QSystemTrayIcon::isSystemTrayAvailable());
+
 #if defined(Q_OS_WIN)
     m_pComboElevate->setCurrentIndex(static_cast<int>(appConfig().elevateMode()));
 #else

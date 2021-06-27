@@ -25,6 +25,7 @@
 #include <QSettings>
 #include <QProcess>
 #include <QThread>
+#include <QTimer>
 
 #include "ui_MainWindowBase.h"
 
@@ -201,11 +202,13 @@ public slots:
         SslCertificate* m_pSslCertificate;
         QStringList m_PendingClientNames;
         LogWindow *m_pLogWindow;
+        QTimer m_OpenHiddenTrayTimer;
 
 private slots:
     void on_m_pCheckBoxAutoConfig_toggled(bool checked);
     void on_m_pComboServerList_currentIndexChanged(QString );
     void on_m_pButtonReload_clicked();
+    void on_m_OpenHiddenTrayTimer_triggered();
     void installBonjour();
 
 };

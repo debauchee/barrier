@@ -37,6 +37,9 @@ class QBarrierApplication : public QApplication
 
         static QBarrierApplication* getInstance();
 
+    private Q_SLOTS:
+        void onLastWindowClosed();
+
     private:
         QTranslator* m_Translator;
 

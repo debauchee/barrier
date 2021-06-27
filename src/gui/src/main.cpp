@@ -16,9 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define TRAY_RETRY_COUNT 5
-#define TRAY_RETRY_WAIT 2000
-
 #include "QBarrierApplication.h"
 #include "MainWindow.h"
 #include "AppConfig.h"
@@ -46,8 +43,6 @@ public:
 		QThread::msleep(msecs);
 	}
 };
-
-int waitForTray();
 
 #if defined(Q_OS_MAC)
 bool checkMacAssistiveDevices();
@@ -93,19 +88,8 @@ int main(int argc, char* argv[])
 	}
 #endif
 
-	int trayAvailable = waitForTray();
-
-	QApplication::setQuitOnLastWindowClosed(false);
-
 	QSettings settings;
 	AppConfig appConfig (&settings);
-
-	if (appConfig.getAutoHide() && !trayAvailable)
-	{
-		// force auto hide to false - otherwise there is no way to get the GUI back
-		fprintf(stdout, "System tray not available, force disabling auto hide!\n");
-		appConfig.setAutoHide(false);
-	}
 
 	app.switchTranslator(appConfig.language());
 
@@ -122,29 +106,6 @@ int main(int argc, char* argv[])
 	}
 
 	return app.exec();
-}
-
-int waitForTray()
-{
-	// on linux, the system tray may not be available immediately after logging in,
-	// so keep retrying but give up after a short time.
-	int trayAttempts = 0;
-	while (true)
-	{
-		if (QSystemTrayIcon::isSystemTrayAvailable())
-		{
-			break;
-		}
-
-		if (++trayAttempts > TRAY_RETRY_COUNT)
-		{
-			fprintf(stdout, "System tray is unavailable.\n");
-			return false;
-		}
-
-		QThreadImpl::msleep(TRAY_RETRY_WAIT);
-	}
-	return true;
 }
 
 #if defined(Q_OS_MAC)
