@@ -63,9 +63,17 @@ jobs:
         artifactName: Windows Release Installer
 
 - job: LinuxBuild
+  strategy:
+    matrix:
+      ubuntu-16.04:
+        imageName: 'ubuntu-16.04'
+      ubuntu-18.04:
+        imageName: 'ubuntu-18.04'
+      ubuntu-20.04:
+        imageName: 'ubuntu-20.04'
   displayName: Linux Build
   pool:
-    vmImage: 'ubuntu-16.04'
+    vmImage: $(imageName)
   steps:
     - script: sudo apt-get update -y
     - script: sudo apt-get install -y libxtst-dev qtdeclarative5-dev libavahi-compat-libdnssd-dev libcurl4-openssl-dev
