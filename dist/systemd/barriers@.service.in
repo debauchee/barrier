@@ -1,0 +1,54 @@
+#  Barrier Server service barriers-@BARRIER_VERSION@
+#
+#  This file is part of Barrier.
+#
+#  This is a systemd template service for running the barriers server using a 
+#  specific port or IP. Instances are started using @[ip]:<port>. For example:
+#
+#  Starting:
+#   systemctl start barriers@0.0.0.0:24800
+#  or:
+#   systemctl start barriers@:24800
+#
+#  Enabling:
+#   systemctl enable barriers@0.0.0.0:24800
+#
+#  SSL data is stored in /var/lib/barrier/barrier<instance>/barrier/SSL for each
+#  instance.
+
+[Unit]
+Description=Barrier Server listening on %I (Open-source KVM software)
+Documentation=man:barriers(1) man:barrierc(1)
+Documentation=https://github.com/debauchee/barrier/wiki
+# Require network before starting barrierc
+After=network-online.target
+Wants=network-online.target
+# Don't run server if client or another server is running
+Conflicts=barrierc@.service barriers.service
+# Sanity check that /var/lib exists
+ConditionPathExists=/var/lib
+
+[Service]
+Type=simple
+# Log level may be FATAL, ERROR, WARNING, NOTE, INFO, DEBUG, DEBUG1, DEBUG2
+Environment=LOG_LEVEL=INFO
+# Default display is :0
+Environment=DISPLAY=:0
+# Store SSL data in instance specific directories 
+Environment=XDG_DATA_HOME=/var/lib/barrier/barrier%i
+# SSL data directory
+Environment=CERT_DIR=/var/lib/barrier/barrier%i/barrier/SSL
+# Ensure the SSL directory exists 
+StateDirectory=barrier/barrier%i/barrier/SSL
+# Create the Barrier.pem certificate if it doesn't exist
+ExecStartPre=/usr/bin/sh -c "[ -f ${CERT_DIR}/Barrier.pem ] || openssl req -x509 -nodes -days 365 -subj '/CN=Barrier' -newkey rsa:2048 -text -keyout ${CERT_DIR}/Barrier.pem -out ${CERT_DIR}/Barrier.pem"
+
+# Main executable
+ExecStart=@SYSTEMD_EXEC_PATH_PREFIX@barriers --enable-crypto --display ${DISPLAY} --debug ${LOG_LEVEL} --config /etc/barrier.conf --no-daemon --address %i
+# Restart on fail
+Restart=always
+
+[Install]
+# Install to graphical target
+WantedBy=graphical.target
+DefaultInstance=:24800

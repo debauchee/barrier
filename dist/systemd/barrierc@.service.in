@@ -1,0 +1,59 @@
+#  Barrier Client service barrierc-@BARRIER_VERSION@
+#
+#  This file is part of Barrier.
+#
+#  This is a systemd template service for the barrierc client service. Instances
+#  are started using @<hostname>. For example:
+#
+#  Starting:
+#   systemctl start barrierc@myserver
+#  or:
+#   systemctl start barrierc@myserver:24800
+#
+#  Enabling:
+#   systemctl enable barrierc@myserver
+#
+#  SSL Fingerprints are stored in /var/lib/barrier@<hostname> for each client 
+#  instance.
+
+[Unit]
+Description=Barrier Client connected to %I (Open-source KVM software)
+Documentation=man:barrierc(1) man:barriers(1)
+Documentation=https://github.com/debauchee/barrier/wiki
+# Require network before starting barrierc
+After=network-online.target
+Wants=network-online.target
+# Don't run client if server is running
+Conflicts=barriers.service
+
+[Service]
+Type=simple
+# Log level may be FATAL, ERROR, WARNING, NOTE, INFO, DEBUG, DEBUG1, DEBUG2
+Environment=LOG_LEVEL=INFO
+# Default display is :0
+Environment=DISPLAY=:0
+# Store fingerprints in instance specific directories
+Environment=XDG_DATA_HOME=/var/lib/barrier/barrier@%i
+# TrustedServers.txt Directory
+Environment=FP_DIR=/var/lib/barrier/barrier@%i/barrier/SSL/Fingerprints
+# Ensure the Fingerprints directory exists
+StateDirectory=barrier/barrier@%i/barrier/SSL/Fingerprints
+
+# This uses openssl commands and grep to get the server's key and 
+# store it in the TrustedServers.txt file. OpenSSL is a requirement
+# for barrier on Linux so these commands should exist. This will only
+# work if using the default 24800 port (since the port number must be
+# specified for openssl)
+ExecStartPre=/usr/bin/sh -c "[ -f "${FP_DIR}/TrustedServers.txt" ] ||\
+openssl s_client -connect %i:24800 2>/dev/null |\
+openssl x509 -noout -sha1 -fingerprint |\
+grep -oE '([A-Z0-9]{2}:?){20}' > ${FP_DIR}/TrustedServers.txt"
+
+# Main executable
+ExecStart=@SYSTEMD_EXEC_PATH_PREFIX@barrierc --enable-crypto --display ${DISPLAY} --debug ${LOG_LEVEL} --no-daemon %i
+# Restart on fail
+Restart=always
+
+[Install]
+# Install to graphical target
+WantedBy=graphical.target
