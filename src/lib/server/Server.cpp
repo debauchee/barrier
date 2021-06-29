@@ -43,6 +43,7 @@
 #include "base/IEventQueue.h"
 #include "base/Log.h"
 #include "base/TMethodEventJob.h"
+#include "barrier/HdmiSwitch.h"
 
 #include <cstring>
 #include <cstdlib>
@@ -523,6 +524,13 @@ Server::switchScreen(BaseClientProxy* dst,
 	else {
 		m_active->mouseMove(x, y);
 	}
+
+	//TODO: make command and portSettings editable, e.g., in ScreenSettingsDialog
+	const std::string & command = (dst == m_primaryClient) ? "port0R" : "port1R";
+	const std::string & portSettings = "COM4-9600-8N1";
+	
+	if (!command.empty() && !portSettings.empty())
+	  HdmiSwitch::SendCommand(command, portSettings);
 }
 
 void
