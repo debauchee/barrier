@@ -63,6 +63,7 @@ public:
     virtual Event::Type getRegisteredType(const std::string& name) const;
     void*                getSystemTarget();
     virtual void        waitForReady() const;
+	virtual void        restoreTerminal() const { m_parentStream.restoreTerminal(); }
 
 private:
     UInt32                saveEvent(const Event& event);

@@ -39,6 +39,7 @@ public:
     ~NonBlockingStream();
 
     bool try_read_char(char &ch) const;
+	void restoreTerminal(void) const;
 
 private:
     int _fd;
