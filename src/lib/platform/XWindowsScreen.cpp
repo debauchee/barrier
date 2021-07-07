@@ -324,7 +324,7 @@ XWindowsScreen::leave()
     m_impl->XGetInputFocus(m_display, &m_lastFocus, &m_lastFocusRevert);
 
 	// take focus
-	if (m_isPrimary || !m_preserveFocus) {
+	if (!m_preserveFocus) {
         m_impl->XSetInputFocus(m_display, m_window, RevertToPointerRoot, CurrentTime);
 	}
 
